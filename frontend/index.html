@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UFC Fight Predictor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>UFC Fight Predictor</h1>
+            <p>Select two fighters to predict the winner</p>
+        </header>
+
+        <div class="fighter-selection">
+            <div class="fighter-input-wrapper">
+                <input 
+                    type="text" 
+                    id="fighter1" 
+                    list="fighters-list" 
+                    placeholder="Select Fighter 1..."
+                    autocomplete="off"
+                >
+                <datalist id="fighters-list"></datalist>
+            </div>
+
+            <div class="vs-text">VS</div>
+
+            <div class="fighter-input-wrapper">
+                <input 
+                    type="text" 
+                    id="fighter2" 
+                    list="fighters-list" 
+                    placeholder="Select Fighter 2..."
+                    autocomplete="off"
+                >
+            </div>
+        </div>
+
+        <div class="button-wrapper">
+            <button id="predict-btn" disabled>Predict Fight</button>
+        </div>
+
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            <p>Analyzing fight...</p>
+        </div>
+
+        <div id="error" class="error hidden"></div>
+
+        <div id="results" class="results hidden">
+            <div class="results-header">
+                <h2>Prediction Results</h2>
+            </div>
+            <div class="results-cards">
+                <div class="fighter-card" id="card1">
+                    <div class="fighter-name" id="name1"></div>
+                    <div class="fighter-probability" id="prob1"></div>
+                    <div class="winner-badge hidden" id="winner1">WINNER!</div>
+                </div>
+                
+                <div class="vs-text-results">VS</div>
+                
+                <div class="fighter-card" id="card2">
+                    <div class="fighter-name" id="name2"></div>
+                    <div class="fighter-probability" id="prob2"></div>
+                    <div class="winner-badge hidden" id="winner2">WINNER!</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
