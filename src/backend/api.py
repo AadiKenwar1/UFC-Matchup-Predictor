@@ -4,10 +4,16 @@ from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from pathlib import Path
-from fighters import get_all_fighters, fighter_exists
-from predict import predict_fight
+from fighters import get_all_fighters, fighter_exists, _get_preprocessed_data, _get_features_data
+from predict import predict_fight, _get_model
 
 app = FastAPI(title="UFC Predictor API")
+
+@app.on_event("startup")
+async def startup_event():
+    _get_preprocessed_data()
+    _get_features_data()
+    _get_model()
 
 # Get frontend directory path (works for both local and deployed)
 frontend_dir = Path(__file__).parent.parent.parent / "frontend"
