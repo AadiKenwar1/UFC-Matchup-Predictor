@@ -1,8 +1,8 @@
 # UFC Fight Predictor
 
-An end-to-end machine learning system that predicts UFC fight outcomes using historical fighter data, performance metrics, and matchup dynamics. The system achieves 62% accuracy (ROC-AUC: 0.65) in predicting fight winners—significantly outperforming random chance in a highly unpredictable sport.
+An end-to-end machine learning system that predicts UFC fight outcomes using historical fighter data, performance metrics, and matchup dynamics. The system achieves 63% accuracy (ROC-AUC: 0.65) in predicting fight winners—significantly outperforming random chance in a highly unpredictable sport.
 
-**Live Demo:** [Deployed on Render](PLACEHOLDER_LINK)
+**Live Demo:** [Deployed on Render](https://ufc-matchup-predictor.onrender.com/)
 
 ## Features
 
