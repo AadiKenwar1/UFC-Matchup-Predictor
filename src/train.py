@@ -96,7 +96,7 @@ importance_df_filtered = pd.DataFrame({
     'feature': important_features,
     'importance': importance_df[importance_df['importance'] > 0.0]['importance'].values
 }).sort_values('importance', ascending=False)
-print(importance_df_filtered.head(498).to_string(index=False))
+print(importance_df_filtered.head(0).to_string(index=False))
 
 # Save the filtered model
 model_filtered.save('models/ufc_model.pkl')

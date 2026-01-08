@@ -86,6 +86,13 @@ ENGINEERED_FEATURES = [
     'fighter1_days_since_last_fight', 'fighter2_days_since_last_fight',
     'fighter1_total_fights', 'fighter2_total_fights',
     'fighter1_days_in_ufc', 'fighter2_days_in_ufc',
+    # Title fight features
+    'fighter1_num_title_fights', 'fighter2_num_title_fights',
+    'title_fights_diff', 'title_fights_ratio',
+    'fighter1_days_since_last_title_fight', 'fighter2_days_since_last_title_fight',
+    'days_since_last_title_fight_diff',
+    'fighter1_is_current_champion', 'fighter2_is_current_champion',
+    'champion_diff', 'both_champions',
     'fighter1_win_rate_last_5', 'fighter2_win_rate_last_5',
     'fighter1_avg_sig_strikes_last_3', 'fighter2_avg_sig_strikes_last_3',
     'fighter1_avg_control_time_last_3', 'fighter2_avg_control_time_last_3',

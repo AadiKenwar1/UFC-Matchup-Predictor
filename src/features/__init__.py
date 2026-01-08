@@ -2,6 +2,7 @@ import pandas as pd
 from preprocessor import preprocess_data
 from .basic import create_basic_features
 from .historical import create_historical_features
+from .title_fights import create_title_fight_features
 from .ratios import create_ratio_features
 from .momentum import create_momentum_features
 from .interactions import create_interaction_features
@@ -15,6 +16,7 @@ def create_features():
     # Create features in order
     df = create_basic_features(df)
     df = create_historical_features(df)
+    df = create_title_fight_features(df)  # Must run after historical (needs fighter1_won_shifted)
     df = create_ratio_features(df)
     df = create_momentum_features(df)
     df = create_interaction_features(df)
