@@ -1,10 +1,6 @@
-"""
-Fighter service module - handles all fighter-related operations.
-Core logic that can be used by CLI, API, or other tools.
-"""
 import pandas as pd
-from .preprocessor import preprocess_data
-from .features import create_features
+from preprocessor import preprocess_data
+from features import create_features
 
 # Cache the preprocessed and features data to avoid reloading
 _df_preprocessed = None

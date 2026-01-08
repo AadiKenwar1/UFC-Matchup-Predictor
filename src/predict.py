@@ -3,10 +3,25 @@ import numpy as np
 from model import UFCXGBoostModel
 from fighters import get_fighter_features, _get_preprocessed_data, _get_features_data
 
+# Cache the model to avoid reloading from disk on every request
+_model_cache = None
+_model_path_cache = None
+
+def _get_model(model_path: str = 'models/ufc_model_final.pkl'):
+    """Load and cache the model (reload only if path changes)"""
+    global _model_cache, _model_path_cache
+    
+    if _model_cache is None or _model_path_cache != model_path:
+        model = UFCXGBoostModel()
+        model.load(model_path)
+        _model_cache = model
+        _model_path_cache = model_path
+    
+    return _model_cache
+
 def predict_fight(fighter1_name: str, fighter2_name: str, model_path: str = 'models/ufc_model_final.pkl'):
-    # Load model
-    model = UFCXGBoostModel()
-    model.load(model_path)
+    # Load cached model (only loads from disk once)
+    model = _get_model(model_path)
     
     # Get full datasets (with all historical data for proper feature calculation)
     df_preprocessed = _get_preprocessed_data()

@@ -1,0 +1,101 @@
+================================================================================
+                    UFC PREDICTOR - RUNNING INSTRUCTIONS
+================================================================================
+
+STEP 1: SET UP VIRTUAL ENVIRONMENT
+--------------------------------------------------------------------------------
+Open terminal/command prompt in the project folder.
+
+Windows:
+    python -m venv venv
+    venv\Scripts\activate
+
+Mac/Linux:
+    python3 -m venv venv
+    source venv/bin/activate
+
+You should see (venv) at the start of your command line.
+
+================================================================================
+STEP 2: INSTALL DEPENDENCIES
+--------------------------------------------------------------------------------
+With virtual environment activated, run:
+
+    pip install -r requirements.txt
+
+Wait for installation to complete.
+
+================================================================================
+STEP 3: TRAIN THE MODEL
+--------------------------------------------------------------------------------
+Train the final production model (trains on all available data):
+
+    cd src
+    python trainFinal.py
+
+This will:
+- Load all data from the 'data/' folder
+- Create all features (takes a few minutes)
+- Train the XGBoost model
+- Save the model to 'models/ufc_model_final.pkl'
+
+Wait for "Model saved" message before proceeding.
+
+Go back to project root:
+    cd ..
+
+================================================================================
+STEP 4: START THE SERVER
+--------------------------------------------------------------------------------
+Start the server (serves both backend API and frontend):
+
+    python src/backend/run_api.py
+
+You should see:
+    INFO:     Uvicorn running on http://0.0.0.0:8000
+
+Keep this terminal window open.
+
+================================================================================
+STEP 5: USE THE APPLICATION
+--------------------------------------------------------------------------------
+Open your browser and go to:
+    http://localhost:8000
+
+Or simply open: frontend/index.html in your browser
+
+The app should load and you can:
+1. Wait for fighters to load in the dropdown menus
+2. Select Fighter 1 from the first dropdown
+3. Select Fighter 2 from the second dropdown
+4. Click "Predict Fight" button
+5. View the predicted winner and win probabilities
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+Problem: "Module not found" errors
+Solution: Make sure virtual environment is activated and dependencies installed
+
+Problem: "No module named 'fighters'"
+Solution: Make sure you're running from project root, not src/ folder
+
+Problem: "Failed to load fighters" in browser
+Solution: Make sure API server is running (Step 4) before opening frontend
+
+Problem: Model file not found
+Solution: Make sure you ran trainFinal.py (Step 3) and model was saved
+
+Problem: Port 8000 already in use
+Solution: Kill the process using port 8000 or change port in run_api.py
+
+================================================================================
+QUICK START (For Returning Users)
+================================================================================
+
+1. Activate virtual environment
+2. python src/backend/run_api.py
+3. Open http://localhost:8000 in browser
+4. That's it! Model and data are already cached.
+

@@ -1,7 +1,5 @@
-// API Configuration
-const API_URL = window.location.hostname === 'localhost' 
-    ? 'http://localhost:8000' 
-    : 'https://your-api-domain.com'; // Update this for production
+// API Configuration - use relative URLs (same origin, no CORS needed)
+const API_URL = '';
 
 // DOM Elements
 const fighter1Input = document.getElementById('fighter1');
