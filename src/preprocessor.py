@@ -1,5 +1,10 @@
 import pandas as pd
 import numpy as np
+from pathlib import Path
+
+# Get project root directory (go up from src/preprocessor.py)
+PROJECT_ROOT = Path(__file__).parent.parent
+DATA_DIR = PROJECT_ROOT / "data"
 
 # Parse fraction strings to (landed, attempted) tuple, e.g. '17 of 26'
 def parse_fraction(value):
@@ -50,11 +55,11 @@ def parse_dob(value):
 
 # Combine all UFC CSVs into a single dataset for ML prediction
 def combine_dataframes():
-    # Load CSVs
-    events = pd.read_csv('data/ufc_event_details.csv')
-    results = pd.read_csv('data/ufc_fight_results.csv')
-    stats = pd.read_csv('data/ufc_fight_stats.csv')
-    fighter_tott = pd.read_csv('data/ufc_fighter_tott.csv')
+    # Load CSVs using absolute paths
+    events = pd.read_csv(DATA_DIR / 'ufc_event_details.csv')
+    results = pd.read_csv(DATA_DIR / 'ufc_fight_results.csv')
+    stats = pd.read_csv(DATA_DIR / 'ufc_fight_stats.csv')
+    fighter_tott = pd.read_csv(DATA_DIR / 'ufc_fighter_tott.csv')
     # Strip whitespace from EVENT and BOUT columns to fix merge issues
     events['EVENT'] = events['EVENT'].str.strip()
     results['EVENT'] = results['EVENT'].str.strip()

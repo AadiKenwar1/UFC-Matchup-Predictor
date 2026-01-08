@@ -1,6 +1,11 @@
+from pathlib import Path
 from features import create_features
 from model import UFCXGBoostModel
 from tuning import SCALE_POS_WEIGHT
+
+# Get project root directory
+PROJECT_ROOT = Path(__file__).parent.parent
+MODELS_DIR = PROJECT_ROOT / "models"
 
 # Load all data
 print("Loading and creating features...")
@@ -21,6 +26,7 @@ model = UFCXGBoostModel(scale_pos_weight=SCALE_POS_WEIGHT)
 model.fit(X, y)  # No validation set - training on all data
 
 # Save the model
-model.save('models/ufc_model_final.pkl')
-print(f"\nModel saved to models/ufc_model_final.pkl ({len(X.columns)} features)")
+model_path = str(MODELS_DIR / 'ufc_model_final.pkl')
+model.save(model_path)
+print(f"\nModel saved to {model_path} ({len(X.columns)} features)")
 

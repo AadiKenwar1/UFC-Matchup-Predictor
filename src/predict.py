@@ -1,15 +1,27 @@
 import pandas as pd
 import numpy as np
+from pathlib import Path
 from model import UFCXGBoostModel
 from fighters import get_fighter_features, _get_preprocessed_data, _get_features_data
+
+# Get project root directory (go up from src/predict.py)
+PROJECT_ROOT = Path(__file__).parent.parent
+MODELS_DIR = PROJECT_ROOT / "models"
 
 # Cache the model to avoid reloading from disk on every request
 _model_cache = None
 _model_path_cache = None
 
-def _get_model(model_path: str = 'models/ufc_model_final.pkl'):
+def _get_model(model_path: str = None):
     """Load and cache the model (reload only if path changes)"""
     global _model_cache, _model_path_cache
+    
+    if model_path is None:
+        model_path = str(MODELS_DIR / 'ufc_model_final.pkl')
+    else:
+        # Convert relative paths to absolute
+        if not Path(model_path).is_absolute():
+            model_path = str(MODELS_DIR / model_path)
     
     if _model_cache is None or _model_path_cache != model_path:
         model = UFCXGBoostModel()
@@ -19,7 +31,7 @@ def _get_model(model_path: str = 'models/ufc_model_final.pkl'):
     
     return _model_cache
 
-def predict_fight(fighter1_name: str, fighter2_name: str, model_path: str = 'models/ufc_model_final.pkl'):
+def predict_fight(fighter1_name: str, fighter2_name: str, model_path: str = None):
     # Load cached model (only loads from disk once)
     model = _get_model(model_path)
     
