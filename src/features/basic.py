@@ -5,8 +5,6 @@ def create_basic_features(df):
     """
     Create basic features: temporal, age, differences, days since last fight, etc.
     """
-    # Extract temporal features (DATE is already datetime from preprocessor)
-    df['month'] = df['DATE'].dt.month
     
     # Calculate ages at fight date (DOB is already datetime from preprocessor)
     df['fighter1_age'] = (df['DATE'] - df['fighter1_dob']).dt.days / 365.25
@@ -53,6 +51,9 @@ def create_basic_features(df):
     df['fighter2_days_in_ufc'] = (df['DATE'] - df['fighter2_first_fight_date']).dt.days
     # Drop intermediate columns
     df = df.drop(columns=['fighter1_first_fight_date', 'fighter2_first_fight_date'])
-    
+
+    # Layoff difference: positive = fighter1 had a longer break
+    df['layoff_diff'] = df['fighter1_days_since_last_fight'] - df['fighter2_days_since_last_fight']
+
     return df
 

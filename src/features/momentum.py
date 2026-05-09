@@ -57,6 +57,9 @@ def create_momentum_features(df):
     # Streak difference
     df['win_streak_diff'] = df['fighter1_win_streak'] - df['fighter2_win_streak']
     df['loss_streak_diff'] = df['fighter1_loss_streak'] - df['fighter2_loss_streak']
+
+    # Career win rate difference
+    df['career_win_rate_diff'] = df['fighter1_career_win_rate'] - df['fighter2_career_win_rate']
     
     # Drop intermediate columns
     df = df.drop(columns=['fighter1_result', 'fighter2_result'], errors='ignore')

@@ -6,7 +6,7 @@ MODEL_PARAMS = {
     'objective': 'binary:logistic',
     'random_state': 42,
     'n_estimators': 160,
-    'max_depth': 5,
+    'max_depth': 4,
     'learning_rate': 0.01,
     'subsample': 0.9,
     'colsample_bytree': 0.9,

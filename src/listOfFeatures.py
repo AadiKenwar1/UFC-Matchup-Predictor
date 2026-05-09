@@ -28,8 +28,9 @@ FEATURES = ['OUTCOME', 'WEIGHTCLASS', 'METHOD', 'ROUND', 'TIME', 'REFEREE',
        'fighter1_avg_control_time_last_3', 'fighter2_avg_control_time_last_3']
 
 # Columns to drop after feature engineering
-COLS_TO_DROP = ['URL', 'EVENT', 'BOUT', 'DETAILS', 'fighter1_name', 'fighter2_name', 
+COLS_TO_DROP = ['URL', 'EVENT', 'BOUT', 'DETAILS', 'fighter1_name', 'fighter2_name',
                 'TIME FORMAT', 'fighter1_dob', 'fighter2_dob', 'fighter1_won',
+                'month',
                 'fighter1_won_shifted', 'fighter2_won', 'fighter2_won_shifted', 'LOCATION',
                 'OUTCOME', 'fighter1_stance', 'fighter2_stance',
                 'METHOD', 'ROUND', 'TIME', 'ROUND_numeric', 'TIME_seconds',
@@ -79,11 +80,10 @@ AVG_COLS = ['fighter1_avg_finish_round_last_5', 'fighter2_avg_finish_round_last_
 
 # Engineered features we create
 ENGINEERED_FEATURES = [
-    'month',
     'fighter1_age', 'fighter2_age', 'fighter1_age_unknown', 'fighter2_age_unknown',
     'is_title_fight', 'stance_matchup',
     'height_diff', 'weight_diff', 'reach_diff', 'age_diff', 'age_diff_unknown',
-    'fighter1_days_since_last_fight', 'fighter2_days_since_last_fight',
+    'fighter1_days_since_last_fight', 'fighter2_days_since_last_fight', 'layoff_diff',
     'fighter1_total_fights', 'fighter2_total_fights',
     'fighter1_days_in_ufc', 'fighter2_days_in_ufc',
     # Title fight features
@@ -114,7 +114,7 @@ ENGINEERED_FEATURES = [
     'fighter1_avg_finish_round_last_5', 'fighter2_avg_finish_round_last_5',
     'fighter1_early_finish_rate_last_5', 'fighter2_early_finish_rate_last_5',
     'fighter1_avg_finish_time_last_5', 'fighter2_avg_finish_time_last_5',
-    # Historical ratio features
+    # Historical ratio features (capped at 10)
     'win_rate_ratio', 'finish_rate_ratio', 'ko_rate_ratio', 'sub_rate_ratio',
     'decision_rate_ratio', 'early_finish_rate_ratio', 'avg_sig_strikes_ratio',
     'avg_control_time_ratio', 'total_fights_ratio', 'days_in_ufc_ratio',
@@ -123,9 +123,14 @@ ENGINEERED_FEATURES = [
     'avg_leg_strikes_ratio', 'avg_distance_strikes_ratio', 'avg_clinch_strikes_ratio',
     'avg_ground_strikes_ratio', 'avg_sub_att_ratio', 'avg_rev_ratio',
     'avg_total_strikes_ratio',
+    # Difference features (complement ratios, stable when both values near zero)
+    'win_rate_diff', 'finish_rate_diff', 'ko_rate_diff', 'sub_rate_diff',
+    # Striking accuracy differences
+    'sig_strikes_pct_diff', 'takedown_pct_diff',
     # Momentum features
     'fighter1_career_win_rate', 'fighter2_career_win_rate',
     'fighter1_momentum', 'fighter2_momentum', 'momentum_diff',
+    'career_win_rate_diff',
     # Win/loss streak features
     'fighter1_win_streak', 'fighter2_win_streak',
     'fighter1_loss_streak', 'fighter2_loss_streak',
