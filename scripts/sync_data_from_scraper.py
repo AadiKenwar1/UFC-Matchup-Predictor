@@ -3,6 +3,9 @@ Copy every CSV from scrape_ufc_stats into this repo's data/ folder (full mirror)
 
 Default source: sibling directory ../scrape_ufc_stats (same parent as UFC Predictor).
 
+After syncing, rebuild API caches (optional but recommended before deploy):
+  python scripts/export_feature_cache.py
+
 Usage:
   python scripts/sync_data_from_scraper.py
   python scripts/sync_data_from_scraper.py --source "D:\\path\\to\\scrape_ufc_stats"
