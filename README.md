@@ -1,242 +1,145 @@
 # UFC Fight Predictor
 
-An end-to-end machine learning system that predicts UFC fight outcomes using historical fighter data, performance metrics, and matchup dynamics. The system achieves 63% accuracy (ROC-AUC: 0.65) in predicting fight winners—significantly outperforming random chance in a highly unpredictable sport.
+An end-to-end machine learning system that predicts UFC fight outcomes from historical fight stats, engineered matchup features, and an XGBoost classifier. The pipeline uses **temporal splits** (train on the past, test on future fights) so metrics reflect realistic forecasting. On the held-out test window, training currently reports about **76% test accuracy** and **~0.84 ROC-AUC**. Run `python src/train.py` from `src/` to print the exact figures—they change as data and `src/tuning.py` change.
 
-**Live Demo:** [Deployed on Render](https://ufc-matchup-predictor.onrender.com/)
+**Live demo:** [Deployed on Render](https://ufc-matchup-predictor.onrender.com/)
 
 ## Features
 
-- Real-time fight outcome predictions with win probability percentages
-- Interactive web interface for fighter selection and visualization
-- RESTful API for programmatic access
-- Historical fighter performance analysis
+- Fight outcome predictions with win probabilities (REST + simple web UI)
+- **Order-invariant inference:** swapping which fighter is entered first does not change each fighter’s win probability (see `src/predict.py`)
+- Optional **Parquet cache** for fast API cold starts when `data/ufc_preprocessed.parquet` and `data/ufc_features.parquet` are present
+- Scripts to sync CSVs from a local `scrape_ufc_stats` repo and rebuild that cache
 
-## Tech Stack
+## Tech stack
 
-- **Backend:** Python, FastAPI, XGBoost
-- **Frontend:** HTML, CSS, JavaScript
-- **ML Libraries:** scikit-learn, pandas, numpy
-- **Deployment:** Render
+- **Backend:** Python, FastAPI, Uvicorn  
+- **ML:** XGBoost, scikit-learn, pandas, numpy, joblib  
+- **Frontend:** HTML, CSS, JavaScript (static assets served by FastAPI)  
+- **I/O:** CSV ingestion; **pyarrow** for optional Parquet feature cache  
+- **Deployment:** Render (or any host that can run a long-lived Python process)
 
-## ML Pipeline
+## ML pipeline
 
-### 1. Exploratory Data Analysis (EDA)
+### 1. Exploratory data analysis (`eda.py`)
 
-Initial analysis of 8,400+ historical fights across multiple data sources:
-- Fight outcomes, methods, and round distributions
-- Weight class and location patterns
-- Fighter attribute distributions (height, weight, reach, stance)
-- Missing value analysis
-- Temporal trends in fight frequency
+Explores fight outcomes, methods, weight classes, fighter attributes, and missingness to guide preprocessing and features.
 
-This analysis informed feature engineering decisions and highlighted data quality considerations.
+### 2. Data preprocessing (`preprocessor.py`)
 
-### 2. Data Preprocessing
+- Merges UFC CSVs in `data/` (events, results, per-fight stats, fighter tale-of-the-tape).
+- Parses heights, weights, reach, time, percentages, and strike fractions.
+- Imputes missing physical fields using weight-class–aware rules where possible.
 
-**Data Integration:**
-- Combined 6 CSV files: event details, fight results, fight stats, and fighter attributes
-- Merged data on EVENT, BOUT, and FIGHTER identifiers
-- Extracted fighter names from bout strings ("Fighter1 vs. Fighter2")
+### 3. Feature engineering (`src/features/`)
 
-**Data Parsing:**
-- Height: `5' 9"` → 69 inches
-- Weight: `125 lbs.` → 125
-- Reach: `68"` → 68
-- Time: `4:32` → 272 seconds
-- Percentages: `65%` → 0.65
-- Fractions: `17 of 26` → (17, 26) landed/attempted
+Features are built in a fixed order (`features/__init__.py`).
 
-**Missing Value Handling:**
-- Weight-class-specific imputation for physical attributes (height, weight, reach)
-- Weight-class-specific mode for categorical variables (stance)
-- Fallback to overall mean/mode when weight-class data unavailable
+| Module | Role |
+|--------|------|
+| `basic.py` | Age, physical diffs, stance matchup, title-fight flag, days since last fight, **layoff difference**, career length proxies |
+| `historical.py` | Shifted win rates (last **3**, **5**, and **10** fights), rolling volume/accuracy stats, finish rates, **strikes absorbed** and **striking differential**, **opponent quality** (recent opponents’ win-rate proxy) |
+| `title_fights.py` | Title-fight history and champion flags |
+| `ratios.py` | **Capped** fighter1/fighter2 ratios; **difference** features (e.g. win-rate diff); **sig. strike %** and **takedown %** diffs |
+| `momentum.py` | Career win rate, momentum, streaks, **career win-rate difference** |
+| `interactions.py` | Reach × striking, age × experience, size/power interactions |
+| `consistency.py` | Rolling variance / consistency metrics |
+| `encoding.py` | Binary target; one-hot for referee, weight class, stance matchup |
 
-### 3. Feature Engineering
+**Leakage control:** rolling and “last *n* fights” stats use **`shift(1)`** (and analogous patterns) so only **prior** bouts inform the current row.
 
-Features were engineered in a specific order, with each category building on previous transformations:
+### 4. Model (`model.py`, `tuning.py`)
 
-#### Basic Features (`basic.py`)
-- **Temporal:** Month of fight (seasonal patterns)
-- **Age:** Calculated from date of birth at fight time
-- **Physical Differences:** Height, weight, reach, and age differentials between fighters
-- **Career Metrics:** Days since last fight, total fights, days in UFC (experience indicators)
-- **Matchup Context:** Stance matchup, title fight indicator (5-round vs 3-round)
+- **XGBoost** binary classifier; hyperparameters live in `tuning.py` (e.g. `n_estimators`, `max_depth`, `learning_rate`, subsampling, regularization).
+- **`scale_pos_weight`** adjusts sensitivity to class imbalance for the label “fighter1 won” (see comments in `tuning.py`). Tune with `train.py` and your preferred validation/test tradeoff.
+- **`train.py`:** temporal split, optional **early stopping** when a validation set is passed to `fit()`.
+- **`trainFinal.py`:** fits on **all** labeled rows for deployment; final fit runs **without** early stopping (full `n_estimators` trees). Writes `models/ufc_model_final.pkl`.
 
-#### Historical Features (`historical.py`)
-- **Win Rates:** Last 5 fights (recent form indicator)
-- **Performance Averages:** Rolling averages over last 3 fights for:
-  - Significant strikes, total strikes, takedowns
-  - Control time, knockdowns, submission attempts
-  - Strike distribution (head, body, leg, distance, clinch, ground)
-- **Finish Patterns:** KO/TKO rate, submission rate, decision rate, early finish rate (rounds 1-2)
-- **Finish Timing:** Average finish round and time for wins
+### 5. Temporal splitting (`split_data.py`, dates in `tuning.py`)
 
-**Why:** Recent performance is more predictive than career-long averages. Rolling windows capture form while smoothing outliers.
+- Training / validation / test are cut by **`DATE`** (`VALIDATION_SET_DATE`, `TEST_SET_DATE`), not random rows—so evaluation mimics predicting **future** fights from the past.
 
-#### Ratio Features (`ratios.py`)
-- **Comparative Metrics:** Fighter1 vs Fighter2 ratios for:
-  - Win rates, finish rates, striking averages
-  - Experience (total fights, days in UFC)
-  - Performance consistency metrics
+### 6. Inference (`predict.py`, `fighters.py`)
 
-**Why:** Relative advantages matter more than absolute values. A fighter with 60% win rate facing a 40% opponent is different than both at 50%.
+- Loads `models/ufc_model_final.pkl` and builds a feature row from each fighter’s **latest** historical appearance plus shared context.
+- **Order invariance:** two internal forward passes (A→B and B→A) are averaged so UI order does not change each name’s win probability.
 
-#### Momentum Features (`momentum.py`)
-- **Career Win Rate:** Overall win percentage (expanding window)
-- **Momentum:** Recent form (last 5) minus career average
-  - Positive = improving, Negative = declining
-- **Streaks:** Current win/loss streaks
-
-**Why:** Captures whether fighters are trending up or down, which affects performance beyond raw statistics.
-
-#### Interaction Features (`interactions.py`)
-- **Physical × Performance:** Reach advantage × striking ability
-- **Size Metrics:** Height × weight (size advantage), weight × reach (power advantage)
-- **Experience Interactions:** Age × experience differential
-- **Contextual:** Reach × win rate, size × finish rate
-
-**Why:** Physical attributes alone don't determine outcomes—how they interact with skills matters. A reach advantage is more valuable for strong strikers.
-
-#### Consistency Features (`consistency.py`)
-- **Performance Variance:** Standard deviation of:
-  - Win/loss results (consistency)
-  - Strike output (reliability)
-  - Finish ability (predictability)
-  - Control time and takedown activity
-
-**Why:** Consistent fighters are more predictable. High variance indicates unpredictable performance.
-
-#### Encoding Features (`encoding.py`)
-- **Target Variable:** Binary classification (fighter1 wins = 1, fighter2 wins = 0)
-- **Categorical Encoding:** One-hot encoding for:
-  - Referee (different refereeing styles)
-  - Weight class (different competitive environments)
-  - Stance matchup (Orthodox vs Southpaw dynamics)
-
-**Why:** Categorical variables need encoding for tree-based models. One-hot with drop_first prevents multicollinearity.
-
-### 4. Model Selection
-
-**XGBoost** was chosen for several reasons:
-- **Tabular Data Excellence:** Tree-based models outperform neural networks on structured, tabular data
-- **Feature Interactions:** Automatically captures non-linear relationships and feature interactions
-- **Interpretability:** Feature importance scores provide insights
-- **Performance:** Fast training and prediction, handles missing values well
-- **Regularization:** Built-in L1/L2 regularization prevents overfitting
-
-**Hyperparameters:**
-- `n_estimators: 140`, `max_depth: 4`, `learning_rate: 0.01`
-- `subsample: 0.9`, `colsample_bytree: 0.9` (prevents overfitting)
-- `reg_lambda: 1.15`, `reg_alpha: 0.05` (L2/L1 regularization)
-- `scale_pos_weight: 0.6` (handles class imbalance)
-
-### 5. Data Splitting Strategy
-
-**Temporal Splitting** (not random):
-- **Train:** Fights before 2020-01-01 (5,379 samples)
-- **Validation:** Fights from 2020-01-01 to 2024-01-01 (1,966 samples)
-- **Test:** Fights from 2024-01-01 onwards (1,042 samples)
-
-**Why Temporal:**
-- **Prevents Data Leakage:** Random splits can use future data to predict past fights
-- **Realistic Evaluation:** Simulates real-world scenario where we predict future fights using only historical data
-- **Temporal Dependencies:** Fighters evolve over time; model must generalize to future performance
-
-**Leakage Prevention:**
-- All historical features use `shift(1)` to ensure only past data informs current predictions
-- Rolling averages calculated from previous fights only
-- Win rates exclude the current fight being predicted
-
-### 6. Training Process
-
-**Model Calibration:**
-- `scale_pos_weight: 0.6` (< 1.0) penalizes the positive class (fighter1 wins) more heavily
-- Makes the model more conservative about predicting wins, **reducing false positives** (predicting wins when fighter1 actually loses)
-- Improves prediction reliability by requiring stronger evidence before predicting a win
-
-**Training Approach:**
-- **Development:** `train.py` uses temporal splits for validation and hyperparameter tuning
-- **Production:** `trainFinal.py` trains on all available data (no validation split) for maximum model performance
-
-**Evaluation Metrics:**
-- **Accuracy:** 62% (vs 50% random baseline)
-- **ROC-AUC:** 0.65 (measures ability to distinguish winners from losers)
-- **Context:** Strong performance given UFC's unpredictability—even favorites lose ~40% of the time
-
-## Project Structure
+## Project structure
 
 ```
 UFC Predictor/
-├── data/                 # CSV data files (events, results, stats, fighters)
+├── data/                      # CSVs + optional Parquet cache (see Scripts)
+├── frontend/                  # index.html, style.css, script.js
+├── models/                    # ufc_model_final.pkl (production), ufc_model.pkl (dev train output)
+├── scripts/
+│   ├── sync_data_from_scraper.py   # Mirror CSVs from sibling ../scrape_ufc_stats
+│   └── export_feature_cache.py    # Build ufc_preprocessed.parquet + ufc_features.parquet
 ├── src/
-│   ├── backend/         # FastAPI server (api.py, run_api.py)
-│   ├── features/        # Feature engineering modules
-│   │   ├── basic.py     # Basic features (age, differences, etc.)
-│   │   ├── historical.py # Historical performance metrics
-│   │   ├── ratios.py    # Fighter comparison ratios
-│   │   ├── momentum.py  # Career momentum and streaks
-│   │   ├── interactions.py # Feature interactions
-│   │   ├── consistency.py # Performance variance metrics
-│   │   └── encoding.py  # Target and categorical encoding
-│   ├── eda.py           # Exploratory data analysis
-│   ├── preprocessor.py  # Data cleaning and integration
-│   ├── model.py         # XGBoost model wrapper
-│   ├── predict.py       # Prediction logic
-│   ├── train.py         # Development training (with validation)
-│   ├── trainFinal.py    # Production training (all data)
-│   └── split_data.py    # Temporal train/test splitting
-├── frontend/            # Web interface (HTML, CSS, JS)
-├── models/              # Trained model files (.pkl)
-└── requirements.txt     # Python dependencies
+│   ├── backend/               # api.py, run_api.py
+│   ├── features/              # Feature modules (see table above)
+│   ├── preprocessor.py
+│   ├── fighters.py            # Data caches; prefers Parquet when both files exist
+│   ├── predict.py
+│   ├── model.py
+│   ├── train.py, trainFinal.py, split_data.py, tuning.py, listOfFeatures.py, eda.py
+│   └── ...
+└── requirements.txt
 ```
 
-## Quick Start (Local Development)
+## Quick start (local)
 
-**Prerequisites:** Python 3.8+
+**Prerequisites:** Python 3.10+ recommended (match your venv).
 
 ```bash
-# Install dependencies
 pip install -r requirements.txt
-
-# Run the API server
-python src/backend/run_api.py
-
-# Access web interface
-# Open http://localhost:8000 in your browser
+cd src
+python backend/run_api.py
 ```
 
-**Note:** For production use, visit the deployed version on Render.
+Open **http://localhost:8000** (FastAPI serves the UI and `/fighters`, `/predict`).
 
-## Usage
+### Environment variables
 
-### Web Interface
+| Variable | Effect |
+|----------|--------|
+| `UFC_SCRAPE_DATA_DIR` | Override source folder for `scripts/sync_data_from_scraper.py` |
+| `UFC_DISABLE_PARQUET_CACHE` | If `1` / `true` / `yes`, forces full CSV recompute in `fighters.py` even if Parquet files exist |
 
-1. Select two fighters from the dropdown menus
-2. Click "Predict Fight"
-3. View win probabilities and predicted winner
+## Scripts and data refresh
 
-### API Endpoints
+1. **Sync CSVs** from your local `scrape_ufc_stats` clone (default: sibling folder next to this repo):
 
-**List Fighters:**
-```bash
-GET /fighters
-Response: {"fighters": ["Fighter Name 1", "Fighter Name 2", ...]}
-```
+   ```bash
+   python scripts/sync_data_from_scraper.py
+   ```
 
-**Predict Fight:**
-```bash
-POST /predict
-Body: {"fighter1": "Fighter Name 1", "fighter2": "Fighter Name 2"}
-Response: {
-  "fighter1": "Fighter Name 1",
-  "fighter2": "Fighter Name 2",
-  "fighter1_win_probability": 0.6234,
-  "fighter2_win_probability": 0.3766,
-  "predicted_winner": "Fighter Name 1"
-}
-```
+2. **Rebuild Parquet cache** (speeds up API startup; run after CSV or feature-code changes):
 
-## License & Credits
+   ```bash
+   python scripts/export_feature_cache.py
+   ```
 
-Data sourced from publicly available UFC statistics. Model trained on historical fight data for educational purposes.
+3. **Retrain** (from `src/`):
 
+   ```bash
+   python train.py          # temporal metrics + saves models/ufc_model.pkl
+   python trainFinal.py     # all data → models/ufc_model_final.pkl
+   ```
+
+Training always rebuilds features from CSVs / code paths used in `split_data` and `trainFinal`; the Parquet files are for **serving** only.
+
+## API
+
+**`GET /fighters`** — list of fighter names for the UI.
+
+**`POST /predict`** — JSON body `{"fighter1": "...", "fighter2": "..."}`. Response includes win probabilities and predicted winner; probabilities are **stable** if you swap `fighter1` / `fighter2`.
+
+## Deployment notes (Render)
+
+- Use a **non-sleeping** instance or accept **cold starts** on free tiers (first request after idle may be slow while data/model load).
+- Commit **Parquet** artifacts if you want fast boots without running `export_feature_cache.py` on every deploy; ensure **pyarrow** is installed in the build environment.
+- Point a **custom domain** at Render if you want a branded URL.
+
+## License and credits
+
+Data sourced from publicly available UFC statistics. Built for educational purposes. External scraping workflows may live in a separate `scrape_ufc_stats` repository; respect its **license** if you vendor or redistribute that code.
