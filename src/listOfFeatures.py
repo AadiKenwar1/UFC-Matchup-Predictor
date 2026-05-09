@@ -93,7 +93,9 @@ ENGINEERED_FEATURES = [
     'days_since_last_title_fight_diff',
     'fighter1_is_current_champion', 'fighter2_is_current_champion',
     'champion_diff', 'both_champions',
+    'fighter1_win_rate_last_3', 'fighter2_win_rate_last_3',
     'fighter1_win_rate_last_5', 'fighter2_win_rate_last_5',
+    'fighter1_win_rate_last_10', 'fighter2_win_rate_last_10',
     'fighter1_avg_sig_strikes_last_3', 'fighter2_avg_sig_strikes_last_3',
     'fighter1_avg_control_time_last_3', 'fighter2_avg_control_time_last_3',
     'fighter1_avg_total_strikes_landed_last_3', 'fighter2_avg_total_strikes_landed_last_3',
@@ -145,5 +147,12 @@ ENGINEERED_FEATURES = [
     'fighter1_strike_output_std', 'fighter2_strike_output_std', 'strike_output_consistency_diff',
     'fighter1_finish_consistency', 'fighter2_finish_consistency', 'finish_consistency_diff',
     'fighter1_control_time_std', 'fighter2_control_time_std', 'control_time_consistency_diff',
-    'fighter1_takedown_std', 'fighter2_takedown_std', 'takedown_consistency_diff'
+    'fighter1_takedown_std', 'fighter2_takedown_std', 'takedown_consistency_diff',
+    # Defensive / striking absorbed features
+    'fighter1_avg_strikes_absorbed_last_3', 'fighter2_avg_strikes_absorbed_last_3',
+    'fighter1_striking_differential', 'fighter2_striking_differential',
+    'striking_differential_diff',
+    # Opponent quality (strength of schedule)
+    'fighter1_avg_opp_quality_last_5', 'fighter2_avg_opp_quality_last_5',
+    'opp_quality_diff',
 ]

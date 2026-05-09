@@ -28,6 +28,22 @@ def create_historical_features(df):
     # Fill NaN win rates (first fights) with 0.5 (neutral)
     df['fighter1_win_rate_last_5'] = df['fighter1_win_rate_last_5'].fillna(0.5)
     df['fighter2_win_rate_last_5'] = df['fighter2_win_rate_last_5'].fillna(0.5)
+
+    # Win rate last 3 (more recent form, noisier)
+    df['fighter1_win_rate_last_3'] = df.groupby('fighter1_name')['fighter1_won_shifted'].transform(
+        lambda x: x.rolling(window=3, min_periods=1).mean()
+    ).fillna(0.5)
+    df['fighter2_win_rate_last_3'] = df.groupby('fighter2_name')['fighter2_won_shifted'].transform(
+        lambda x: x.rolling(window=3, min_periods=1).mean()
+    ).fillna(0.5)
+
+    # Win rate last 10 (stable career snapshot)
+    df['fighter1_win_rate_last_10'] = df.groupby('fighter1_name')['fighter1_won_shifted'].transform(
+        lambda x: x.rolling(window=10, min_periods=1).mean()
+    ).fillna(0.5)
+    df['fighter2_win_rate_last_10'] = df.groupby('fighter2_name')['fighter2_won_shifted'].transform(
+        lambda x: x.rolling(window=10, min_periods=1).mean()
+    ).fillna(0.5)
     
     # Calculate average sig strikes landed in last 3 fights
     fighter1_sig_avg = df.groupby('fighter1_name')['fighter1_sig_strikes_landed'].apply(
@@ -193,6 +209,61 @@ def create_historical_features(df):
         if col in df.columns:
             df[col] = df[col].fillna(df[col].median() if not df[col].isna().all() else (2.5 if 'round' in col else 180))
     
+    # ========== STRIKES ABSORBED (DEFENSIVE STATS) ==========
+    # fighter1 absorbs what fighter2 lands, and vice versa
+    # Rolling average of opponent's strikes landed in last 3 fights (shift already applied above)
+    f1_absorbed = df.groupby('fighter1_name')['fighter2_sig_strikes_landed'].apply(
+        lambda x: x.shift(1).rolling(window=3, min_periods=1).mean()
+    ).reset_index(level=0, drop=True)
+    df['fighter1_avg_strikes_absorbed_last_3'] = f1_absorbed.values
+    df['fighter1_avg_strikes_absorbed_last_3'] = df['fighter1_avg_strikes_absorbed_last_3'].fillna(
+        df['fighter1_avg_strikes_absorbed_last_3'].mean()
+    )
+
+    f2_absorbed = df.groupby('fighter2_name')['fighter1_sig_strikes_landed'].apply(
+        lambda x: x.shift(1).rolling(window=3, min_periods=1).mean()
+    ).reset_index(level=0, drop=True)
+    df['fighter2_avg_strikes_absorbed_last_3'] = f2_absorbed.values
+    df['fighter2_avg_strikes_absorbed_last_3'] = df['fighter2_avg_strikes_absorbed_last_3'].fillna(
+        df['fighter2_avg_strikes_absorbed_last_3'].mean()
+    )
+
+    # Striking differential: output minus absorbed (positive = lands more than takes)
+    df['fighter1_striking_differential'] = (
+        df['fighter1_avg_sig_strikes_last_3'] - df['fighter1_avg_strikes_absorbed_last_3']
+    )
+    df['fighter2_striking_differential'] = (
+        df['fighter2_avg_sig_strikes_last_3'] - df['fighter2_avg_strikes_absorbed_last_3']
+    )
+    df['striking_differential_diff'] = (
+        df['fighter1_striking_differential'] - df['fighter2_striking_differential']
+    )
+
+    # ========== OPPONENT QUALITY (STRENGTH OF SCHEDULE) ==========
+    # Average career win rate of opponents faced in last 5 fights
+    # We use career_win_rate proxied via the rolling win rate of whoever was the opponent
+
+    # Map each fighter1 appearance → opponent (fighter2) win rate at that date
+    df['fighter1_opp_win_rate'] = df['fighter2_win_rate_last_5']
+    df['fighter2_opp_win_rate'] = df['fighter1_win_rate_last_5']
+
+    f1_opp_quality = df.groupby('fighter1_name')['fighter1_opp_win_rate'].apply(
+        lambda x: x.shift(1).rolling(window=5, min_periods=1).mean()
+    ).reset_index(level=0, drop=True)
+    df['fighter1_avg_opp_quality_last_5'] = f1_opp_quality.values
+    df['fighter1_avg_opp_quality_last_5'] = df['fighter1_avg_opp_quality_last_5'].fillna(0.5)
+
+    f2_opp_quality = df.groupby('fighter2_name')['fighter2_opp_win_rate'].apply(
+        lambda x: x.shift(1).rolling(window=5, min_periods=1).mean()
+    ).reset_index(level=0, drop=True)
+    df['fighter2_avg_opp_quality_last_5'] = f2_opp_quality.values
+    df['fighter2_avg_opp_quality_last_5'] = df['fighter2_avg_opp_quality_last_5'].fillna(0.5)
+
+    df['opp_quality_diff'] = df['fighter1_avg_opp_quality_last_5'] - df['fighter2_avg_opp_quality_last_5']
+
+    # Drop intermediate opponent win rate columns (not model features)
+    df = df.drop(columns=['fighter1_opp_win_rate', 'fighter2_opp_win_rate'], errors='ignore')
+
     # Defragment DataFrame after win/finish rate calculations
     df = df.copy()
     
