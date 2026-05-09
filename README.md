@@ -9,7 +9,7 @@ An end-to-end machine learning system that predicts UFC fight outcomes from hist
 - Fight outcome predictions with win probabilities (REST + simple web UI)
 - **Order-invariant inference:** swapping which fighter is entered first does not change each fighter’s win probability (see `src/predict.py`)
 - Optional **Parquet cache** for fast API cold starts when `data/ufc_preprocessed.parquet` and `data/ufc_features.parquet` are present
-- Scripts to sync CSVs from a local `scrape_ufc_stats` repo and rebuild that cache
+- Scripts to sync CSVs from a local clone of [Greco1899/scrape_ufc_stats](https://github.com/Greco1899/scrape_ufc_stats) and rebuild that cache (see **Scripts and data refresh**)
 
 ## Tech stack
 
@@ -90,6 +90,8 @@ UFC Predictor/
 
 **Prerequisites:** Python 3.10+ recommended (match your venv).
 
+**CSV sync script:** `scripts/sync_data_from_scraper.py` expects the upstream scraper repo on disk. Clone [Greco1899/scrape_ufc_stats](https://github.com/Greco1899/scrape_ufc_stats) next to this project so both folders share the same parent (default source: `../scrape_ufc_stats`), or set `UFC_SCRAPE_DATA_DIR` to wherever you cloned it. The app itself only needs files under `data/`; the sync step is optional if you already copied CSVs there.
+
 ```bash
 pip install -r requirements.txt
 cd src
@@ -107,7 +109,7 @@ Open **http://localhost:8000** (FastAPI serves the UI and `/fighters`, `/predict
 
 ## Scripts and data refresh
 
-1. **Sync CSVs** from your local `scrape_ufc_stats` clone (default: sibling folder next to this repo):
+1. **Sync CSVs** from [Greco1899/scrape_ufc_stats](https://github.com/Greco1899/scrape_ufc_stats): keep that repo in your workspace as a **sibling** of this one (same parent directory, folder name `scrape_ufc_stats`) so the default path resolves, or pass `--source` / `UFC_SCRAPE_DATA_DIR`.
 
    ```bash
    python scripts/sync_data_from_scraper.py
@@ -142,4 +144,4 @@ Training always rebuilds features from CSVs / code paths used in `split_data` an
 
 ## License and credits
 
-Data sourced from publicly available UFC statistics. Built for educational purposes. External scraping workflows may live in a separate `scrape_ufc_stats` repository; respect its **license** if you vendor or redistribute that code.
+Data sourced from publicly available UFC statistics. Built for educational purposes. CSV refresh via `scripts/sync_data_from_scraper.py` pulls from a local clone of [Greco1899/scrape_ufc_stats](https://github.com/Greco1899/scrape_ufc_stats) (GPL-3.0); respect that **license** if you vendor or redistribute that code.
