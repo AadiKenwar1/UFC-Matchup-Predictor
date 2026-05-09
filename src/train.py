@@ -1,4 +1,5 @@
 import pandas as pd
+from pathlib import Path
 from sklearn.metrics import accuracy_score, roc_auc_score, confusion_matrix, classification_report
 from split_data import temporal_train_test_split
 from model import UFCXGBoostModel
@@ -6,6 +7,8 @@ from listOfFeatures import FEATURES
 from collections import Counter
 from tuning import SCALE_POS_WEIGHT
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+MODELS_DIR = PROJECT_ROOT / "models"
 
 print(len(FEATURES))
 # Split the data
@@ -90,14 +93,13 @@ test_roc_auc_filtered = roc_auc_score(y_test, y_test_pred_proba_filtered)
 print(f"\nFiltered Model - Test Accuracy: {test_accuracy_filtered:.4f}, ROC-AUC: {test_roc_auc_filtered:.4f}")
 print(f"Original Model - Test Accuracy: {test_accuracy:.4f}, ROC-AUC: {test_roc_auc:.4f}")
 
-# Print top features
-print("\nTop Features (after filtering):")
-importance_df_filtered = pd.DataFrame({
-    'feature': important_features,
-    'importance': importance_df[importance_df['importance'] > 0.0]['importance'].values
-}).sort_values('importance', ascending=False)
-print(importance_df_filtered.head(0).to_string(index=False))
+# Print top features (non-zero importance only)
+print("\nTop Features (after filtering, top 25):")
+importance_df_filtered = importance_df[importance_df["importance"] > 0.0].copy()
+print(importance_df_filtered.head(25).to_string(index=False))
 
 # Save the filtered model
-model_filtered.save('models/ufc_model.pkl')
-print(f"\nFiltered model saved to models/ufc_model.pkl ({len(important_features)} features)")
+MODELS_DIR.mkdir(parents=True, exist_ok=True)
+model_path = MODELS_DIR / "ufc_model.pkl"
+model_filtered.save(str(model_path))
+print(f"\nFiltered model saved to {model_path} ({len(important_features)} features)")
