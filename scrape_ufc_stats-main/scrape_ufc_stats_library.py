@@ -29,10 +29,14 @@ def get_soup(url: str) -> BeautifulSoup:
     soup
     '''
     
-    # get page of url
-    page = requests.get(url)
-    # create soup
-    soup = BeautifulSoup(page.content, 'html.parser')
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        page.goto(url, wait_until='networkidle')
+        content = page.content()
+        browser.close()
+    soup = BeautifulSoup(content, 'html.parser')
 
     # return
     return soup

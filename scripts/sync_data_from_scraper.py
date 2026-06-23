@@ -1,7 +1,7 @@
 """
-Copy every CSV from scrape_ufc_stats into this repo's data/ folder (full mirror).
+Copy every CSV from scrape_ufc_stats-main into this repo's data/ folder (full mirror).
 
-Default source: sibling directory ../scrape_ufc_stats (same parent as UFC Predictor).
+Default source: scrape_ufc_stats-main/ inside this repo.
 
 After syncing, rebuild API caches (optional but recommended before deploy):
   python scripts/export_feature_cache.py
@@ -35,7 +35,7 @@ def default_scrape_dir(project_root: Path) -> Path:
     env = os.environ.get("UFC_SCRAPE_DATA_DIR", "").strip()
     if env:
         return Path(env).expanduser().resolve()
-    return (project_root.parent / "scrape_ufc_stats").resolve()
+    return (project_root / "scrape_ufc_stats-main").resolve()
 
 
 def main() -> int:
