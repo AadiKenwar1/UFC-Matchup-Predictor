@@ -3,5 +3,5 @@
   "features_parquet": "ufc_features.parquet",
   "rows_preprocessed": 8723,
   "rows_features": 8723,
-  "seconds_elapsed": 39.44
+  "seconds_elapsed": 31.03
 }
