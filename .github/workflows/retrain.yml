@@ -1,0 +1,49 @@
+name: Scrape, Retrain, Deploy
+
+on:
+  schedule:
+    - cron: '0 10 * * 0'  # Every Sunday at 10am UTC (day after UFC events)
+  workflow_dispatch:        # Manual trigger button in GitHub Actions UI
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install scraper dependencies
+        run: pip install -r scrape_ufc_stats-main/requirements.txt
+
+      - name: Install project dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run scraper
+        run: |
+          cd scrape_ufc_stats-main
+          python scrape_ufc_stats_unparsed_data.py
+
+      - name: Sync CSVs to data/
+        run: python scripts/sync_data_from_scraper.py --source scrape_ufc_stats-main
+
+      - name: Export feature cache
+        run: python scripts/export_feature_cache.py
+
+      - name: Retrain model
+        run: |
+          cd src
+          python trainFinal.py
+
+      - name: Commit and push updated data and model
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add data/ models/
+          git diff --cached --quiet && echo "No changes to commit" || git commit -m "auto: retrain $(date -u +%Y-%m-%d)"
+          git push
