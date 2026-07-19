@@ -1,7 +1,7 @@
 {
   "preprocessed_parquet": "ufc_preprocessed.parquet",
   "features_parquet": "ufc_features.parquet",
-  "rows_preprocessed": 8821,
-  "rows_features": 8821,
-  "seconds_elapsed": 26.45
+  "rows_preprocessed": 8833,
+  "rows_features": 8833,
+  "seconds_elapsed": 20.05
 }
